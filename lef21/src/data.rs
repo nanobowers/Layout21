@@ -115,7 +115,7 @@ pub struct LefLibrary {
     /// Max Via Stack
     #[serde(default, skip_serializing)]
     #[builder(default)]
-    pub max_via_stack: Option<Unsupported>,
+    pub max_via_stack: Option<LefMaxViaStack>,
     /// Via Rules
     #[serde(default, skip_serializing)]
     #[builder(default)]
@@ -147,6 +147,21 @@ impl LefLibrary {
     pub fn to_string(&self) -> LefResult<String> {
         super::write::to_string(self)
     }
+}
+
+/// Specifies number of single cut vias allowed in a stack with 
+/// optional range of layers it applies to.
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefMaxViaStack {
+    pub value: LefDecimal,
+    pub range: Option<LefViaRange>,
+}
+
+/// Range used with [LefMaxViaStack]
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefViaRange {
+    pub bottom_layer: String,
+    pub top_layer: String,
 }
 /// # Lef Macro
 ///
@@ -728,6 +743,8 @@ enumstr!(
         FixedMask: "FIXEDMASK",
         Mask: "MASK",
         UseMinSpacing: "USEMINSPACING",
+        
+        Density: "DENSITY",
         TaperRule: "TAPERRULE",
         NetExpr: "NETEXPR",
         SupplySensitivity: "SUPPLYSENSITIVITY",
@@ -736,7 +753,6 @@ enumstr!(
         Property: "PROPERTY",
         ManufacturingGrid: "MANUFACTURINGGRID",
         ClearanceMeasure: "CLEARANCEMEASURE",
-        Density: "DENSITY",
         
         // UNITS Fields
         Units: "UNITS",

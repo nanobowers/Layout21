@@ -576,8 +576,20 @@ impl<'src> LefParser<'src> {
                     property_definitions.extend(self.parse_property_definitions()?);
                     lib
                 },
-                LefKey::MaxViaStack
-                | LefKey::ViaRule
+                LefKey::MaxViaStack => {
+                    self.advance()?;
+                    let value = self.parse_number()?;
+                    let mut range = None;
+                    if !self.matches(TokenType::SemiColon) {
+                        self.expect_key(LefKey::Range)?;
+                        let bottom_layer = self.parse_ident()?;
+                        let top_layer = self.parse_ident()?;
+                        range = Some(LefViaRange{bottom_layer, top_layer});
+                    }
+                    self.expect(TokenType::SemiColon)?;
+                    lib.max_via_stack(Some(LefMaxViaStack{value, range}))
+                }
+                LefKey::ViaRule
                 | LefKey::Generate
                 | LefKey::NonDefaultRule => self.fail(LefParseErrorType::Unsupported)?,
                 _ => self.fail(LefParseErrorType::InvalidKey)?,

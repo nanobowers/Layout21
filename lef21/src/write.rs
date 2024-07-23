@@ -53,9 +53,9 @@ impl<'wr> LefWriter<'wr> {
     /// Fields are written in the LEF-recommended order
     fn write_lib(&mut self, lib: &LefLibrary) -> LefResult<()> {
         use LefKey::{
-            BusBitChars, ClearanceMeasure, DividerChar, End, FixedMask, Library, ManufacturingGrid,
+            BusBitChars, ClearanceMeasure, DividerChar, End, FixedMask, Library, ManufacturingGrid, MaxViaStack,
             NamesCaseSensitive, NoWireExtensionAtPin, Obs, PropertyDefinitions,
-            UseMinSpacing, Version,
+            Range, UseMinSpacing, Version,
         };
         if let Some(ref v) = lib.version {
             // Save a copy in our session-state
@@ -138,6 +138,15 @@ impl<'wr> LefWriter<'wr> {
         //    if let Some(ref v) = lib.vias { }
         // TODO: VIARULE
         // TODO: NONDEFAULTRULE
+        if let Some(ref v) = lib.max_via_stack {
+            let rangestr = match v.range {
+                Some(ref r) => {
+                    format!("{Range} {} {}", r.bottom_layer, r.top_layer)
+                }
+                None => "".into(),
+            };
+            self.write_line(format_args_f!("{MaxViaStack} {v.value} {rangestr} ;"))?;
+        }
 
         // Write each SITE definition
         for site in lib.sites.iter() {

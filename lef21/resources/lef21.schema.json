@@ -91,7 +91,7 @@
       "writeOnly": true,
       "anyOf": [
         {
-          "$ref": "#/definitions/Unsupported"
+          "$ref": "#/definitions/LefMaxViaStack"
         },
         {
           "type": "null"
@@ -918,6 +918,29 @@
       ],
       "properties": {
         "mask": {
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+        }
+      }
+    },
+    "LefMaxViaStack": {
+      "description": "Specifies number of single cut vias allowed in a stack with optional range of layers it applies to.",
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LefViaRange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
           "type": "string",
           "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
         }
@@ -1881,6 +1904,22 @@
         },
         "via_name": {
           "description": "Via-Type Name",
+          "type": "string"
+        }
+      }
+    },
+    "LefViaRange": {
+      "description": "Range used with [LefMaxViaStack]",
+      "type": "object",
+      "required": [
+        "bottom_layer",
+        "top_layer"
+      ],
+      "properties": {
+        "bottom_layer": {
+          "type": "string"
+        },
+        "top_layer": {
           "type": "string"
         }
       }
