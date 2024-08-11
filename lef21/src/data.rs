@@ -87,15 +87,12 @@ pub struct LefLibrary {
     #[builder(default)]
     pub clearance_measure: Option<LefClearanceStyle>,
 
-    // Unsupported fields recommended for *either* LEF "cell libraries" or "technologies"
-    /// Via Definitions (Unsupported)
-    #[serde(default, skip_serializing)]
-    #[builder(default)]
-    pub vias: Option<Unsupported>,
+    
     /// Syntax Extensions
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default)]
     pub extensions: Vec<LefExtension>,
+
     // Fields recommended for LEF technology descriptions, AKA "tech-lefs"
     /// Manufacturing Grid
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -108,22 +105,33 @@ pub struct LefLibrary {
     /// Property Definitions
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub property_definitions: Vec<LefPropertyDefinition>,
-    /// Layer Definitions
-    #[serde(default, skip_serializing)]
-    #[builder(default)]
-    pub layers: Option<Unsupported>,
     /// Max Via Stack
     #[serde(default, skip_serializing)]
     #[builder(default)]
     pub max_via_stack: Option<LefMaxViaStack>,
+
+    // Unsupported fields recommended for *either* LEF "cell libraries" or "technologies"
+
+    /// Layer Definitions
+    #[serde(default, skip_serializing)]
+    #[builder(default)]
+    pub layers: Option<Unsupported>,
+
+    /// Via Definitions (Unsupported)
+    #[serde(default, skip_serializing)]
+    #[builder(default)]
+    pub vias: Option<Unsupported>,
+
     /// Via Rules
     #[serde(default, skip_serializing)]
     #[builder(default)]
     pub via_rules: Option<Unsupported>,
+
     /// Via Rules Generators
     #[serde(default, skip_serializing)]
     #[builder(default)]
     pub via_rule_generators: Option<Unsupported>,
+
     /// Non Default Rules
     #[serde(default, skip_serializing)]
     #[builder(default)]
