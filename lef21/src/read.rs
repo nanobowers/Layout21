@@ -299,6 +299,9 @@ pub enum TokenType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LefParseContext {
     Library,
+    Layer,
+    Via,
+    ViaRule,
     Macro,
     Pin,
     Port,
@@ -468,6 +471,11 @@ impl<'src> LefParser<'src> {
         let mut lib = LefLibraryBuilder::default();
         let mut macros = Vec::new();
         let mut sites = Vec::new();
+        let mut layers: Vec<LefLayerDefinition> = Vec::new();
+        let mut vias = Vec::new();
+        let mut viarules = Vec::new();
+        let mut viarulegenerates = Vec::new();
+        let mut ndrs = Vec::new();
         let mut extensions = Vec::new();
         let mut property_definitions = Vec::new();
         loop {
@@ -589,9 +597,46 @@ impl<'src> LefParser<'src> {
                     self.expect(TokenType::SemiColon)?;
                     lib.max_via_stack(Some(LefMaxViaStack{value, range}))
                 }
-                LefKey::ViaRule
-                | LefKey::Generate
-                | LefKey::NonDefaultRule => self.fail(LefParseErrorType::Unsupported)?,
+                LefKey::Layer => { 
+                    self.advance()?;
+                    self.ctx.push(LefParseContext::Layer);
+                    let name = self.parse_ident()?;
+                    layers.push(LefLayerDefinition{ name: name.clone(), attributes: self.parse_generic_attributes(name)? });
+                    self.ctx.pop();
+                    lib 
+                }
+                LefKey::Via => {
+                    self.advance()?;
+                    self.ctx.push(LefParseContext::Via);
+                    let name = self.parse_ident()?;
+                    let default = self.parse_maybe_default()?;
+                    vias.push(LefViaDefinition{ name: name.clone(), default, attributes: self.parse_generic_attributes(name)? });
+                    self.ctx.pop();
+                    lib 
+                }
+                LefKey::ViaRule => {
+                    self.advance()?;
+                    self.ctx.push(LefParseContext::ViaRule);
+                    let name = self.parse_ident()?;
+                    if self.peek_key()? == LefKey::Generate {
+                        self.advance()?;
+                        let default = self.parse_maybe_default()?;
+                        viarulegenerates.push(LefViaRuleGenerate{ name: name.clone(), default, attributes: self.parse_generic_attributes(name)? });
+                    } else {
+                        viarules.push(LefViaRule{ name: name.clone(), attributes: self.parse_generic_attributes(name)? });
+                    }
+                    self.ctx.pop();
+                    lib 
+                }
+                LefKey::NonDefaultRule => {
+                    self.advance()?;
+                    self.ctx.push(LefParseContext::ViaRule);
+                    let name = self.parse_ident()?;
+                    ndrs.push(LefNonDefaultRule{ name: name.clone(), attributes: self.parse_generic_attributes(name)? });
+                    self.ctx.pop();
+                    lib 
+                }
+                //self.fail(LefParseErrorType::Unsupported)?,
                 _ => self.fail(LefParseErrorType::InvalidKey)?,
             }
         }
@@ -601,6 +646,55 @@ impl<'src> LefParser<'src> {
         lib = lib.property_definitions(property_definitions);
         self.ctx.pop();
         Ok(lib.build()?)
+    }
+
+    // parse "Default" into a boolean for VIA and VIARULE-GENERATE
+    fn parse_maybe_default(&mut self) -> LefResult<bool> {
+        if self.peek_key()? == LefKey::Default {
+            self.advance()?;
+            return Ok(true)
+        }
+        Ok(false)
+    }
+
+    /// Parse generic attributes for technology sections until the END <name> is reached
+    fn parse_generic_attributes(&mut self, name: String) -> LefResult<Vec<LefGenericAttribute>> {
+        let mut attrs = Vec::new();
+        loop {
+            match self.peek_key()? { 
+                LefKey::End => {
+                    self.advance()?;
+                    self.expect_ident(&name)?;
+                    break;
+                }
+                _ => attrs.push(self.parse_generic_attribute()?)
+            }
+        }
+        Ok(attrs)
+    }
+
+    /// Parse a generic attribute, e.g.
+    ///   NAME [value1 ... [valueN]] ;
+    fn parse_generic_attribute(&mut self) -> LefResult<LefGenericAttribute> {
+        let name = self.parse_ident()?;
+        let mut attr = LefGenericAttribute { name: name.clone(), values: Vec::new() };
+        loop {
+            let otok = self.next_token()?;
+            match otok {
+                Some(tok) if tok.ttype == TokenType::SemiColon => {
+                    break
+                }
+                Some(tok) => {
+                    attr.values.push(String::from(self.txt(&tok)));
+                }
+                None  => {
+                    return self.fail(LefParseErrorType::InvalidToken {
+                        expected: TokenType::Name,
+                    });
+                }
+            }
+        }
+        Ok(attr)
     }
     /// Parse the Lef VERSION declaration
     fn parse_version(&mut self) -> LefResult<LefDecimal> {

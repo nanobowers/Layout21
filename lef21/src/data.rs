@@ -106,36 +106,36 @@ pub struct LefLibrary {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub property_definitions: Vec<LefPropertyDefinition>,
     /// Max Via Stack
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[builder(default)]
     pub max_via_stack: Option<LefMaxViaStack>,
 
-    // Unsupported fields recommended for *either* LEF "cell libraries" or "technologies"
+    // Partially supported technology fields.
 
     /// Layer Definitions
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default)]
-    pub layers: Option<Unsupported>,
+    pub layers: Vec<LefLayerDefinition>,
 
-    /// Via Definitions (Unsupported)
-    #[serde(default, skip_serializing)]
+    /// Via Definitions
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default)]
-    pub vias: Option<Unsupported>,
+    pub vias: Vec<LefViaDefinition>,
 
     /// Via Rules
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default)]
-    pub via_rules: Option<Unsupported>,
+    pub via_rules: Vec<LefViaRule>,
 
     /// Via Rules Generators
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default)]
-    pub via_rule_generators: Option<Unsupported>,
+    pub via_rule_generators: Vec<LefViaRuleGenerate>,
 
     /// Non Default Rules
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[builder(default)]
-    pub non_default_rules: Option<Unsupported>,
+    pub non_default_rules: Vec<LefNonDefaultRule>,
 }
 impl LefLibrary {
     /// Create a new and initially empty [LefLibrary].  
@@ -155,6 +155,47 @@ impl LefLibrary {
     pub fn to_string(&self) -> LefResult<String> {
         super::write::to_string(self)
     }
+}
+
+/// Layer Definition
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefLayerDefinition {
+    pub name: String,
+    pub attributes: Vec<LefGenericAttribute>,
+}
+    /// Via Definition
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefViaDefinition {
+    pub name: String,
+    pub default: bool,
+    pub attributes: Vec<LefGenericAttribute>,
+}
+/// ViaRule
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefViaRule {
+    pub name: String,
+    pub attributes: Vec<LefGenericAttribute>,
+}
+/// ViaRule Generation
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefViaRuleGenerate {
+    pub name: String,
+    pub default: bool,
+    pub attributes: Vec<LefGenericAttribute>,
+}
+/// NonDefaultRule
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefNonDefaultRule {
+    pub name: String,
+    pub attributes: Vec<LefGenericAttribute>,
+}
+
+/// A Generic LEF Attribute.  This starts with a LefKey/String and contains a list of tokens.
+/// e.g. SPACING FOO BAR 1.0 "baz" ;
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefGenericAttribute {
+    pub name: String,
+    pub values: Vec<String>,
 }
 
 /// Specifies number of single cut vias allowed in a stack with 
@@ -805,6 +846,68 @@ enumstr!(
         ViaRule: "VIARULE",
         Generate: "GENERATE",
         NonDefaultRule: "NONDEFAULTRULE",
+        
+        // Layer Attributes
+        Type: "TYPE",
+        Pitch: "PITCH",
+        DiagPitch: "DIAGPITCH",
+        Offset: "OFFSET",
+        DiagWidth: "DIAGWIDTH",
+        DiagSpacing: "DIAGSPACING",
+        DiagMinEdgeLength: "DIAGMINEDGELENGTH",
+        Area: "AREA",
+        MinSize: "MINSIZE",
+        SpacingTable: "SPACINGTABLE",
+        ParallelRunLength: "PARALLELRUNLENGTH", // ??
+        WireExtension: "WIREEXTENSION",
+        MinimumCut: "MINIMUMCUT",
+        MaxWidth: "MAXWIDTH",
+        MinWidth: "MINWIDTH",
+        MinStep: "MINSTEP",
+        MinEnclosedArea: "MINENCLOSEDAREA",
+        ProtrusionWidth: "PROTRUSIONWIDTH",
+        Height: "HEIGHT",
+        Thickness: "THICKNESS",
+        Shrinkage: "SHRINKAGE",
+        CapMultiplier: "CAPMULTIPLIER",
+        EdgeCapacitance: "EDGECAPACITANCE",
+        MinimumDensity: "MINIMUMDENSITY",
+        MaximumDensity: "MAXIMUMDENSITY",
+        MaximumDensityCheckWindow: "DENSITYCHECKWINDOW",
+        MaximumDensityCheckStep: "DENSITYCHECKSTEP",
+        FillActiveSpacing: "FILLACTIVESPACING",
+        AcCurrentDensity: "ACCURRENTDENSITY",
+        DcCurrentDensity: "DCCURRENTDENSITY",
+        AntennaAreaRatio: "ANTENNAAREARATIO",
+        AntennaDiffAreaRatio: "ANTENNADIFFAREARATIO",
+        AntennaCumAreaRatio: "ANTENNACUMAREARATIO",
+        AntennaCumDiffAreaRatio: "ANTENNACUMDIFFAREARATIO",
+        AntennaAreaFactor: "ANTENNAAREAFACTOR",
+        AntennaSideAreaRatio: "ANTENNASIDEAREARATIO",
+        AntennaDiffSideAreaRatio: "ANTENNADIFFSIDEAREARATIO",
+        AntennaCumSideAreaRatio: "ANTENNACUMSIDEAREARATIO",
+        AntennaCumDiffSideAreaRatio: "ANTENNACUMDIFFSIDEAREARATIO",
+        AntennaSideAreaFactor: "ANTENNASIDEAREAFACTOR",
+        AntennaCumRoutingPlusCut: "ANTENNACUMROUTINGPLUSCUT",
+        AntennaGatePlusDiff: "ANTENNAGATEPLUSDIFF",
+        AntennaAreaMinusDiff: "ANTENNAAREAMINUSDIFF",
+        AntennaAreaDiffReducePwl: "ANTENNAAREADIFFREDUCEPWL",
+        // Layer Cut
+        Enclosure: "ENCLOSURE",
+        PreferEnclosure: "PREFERENCLOSURE",
+        ArraySpacing: "ARRAYSPACING",
+        // VIA
+        Default: "DEFAULT",
+        CutSize: "CUTSIZE",
+        Layers: "LAYERS",
+        CutSpacing: "CUTSPACING",
+        RowCol: "ROWCOL",
+        Pattern: "PATTERN",
+        // NDR
+        HardSpacing: "HARDSPACING",
+        UseVia: "USEVIA",
+        UseViaRule: "USEVIARULE",
+        MinCuts: "MINCUTS",
     }
 );
 impl LefKey {
