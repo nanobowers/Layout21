@@ -7,7 +7,6 @@
 
 // Standard Lib Imports
 use std::io::Read;
-use std::num::FpCategory;
 use std::path::Path;
 use std::str::Chars;
 

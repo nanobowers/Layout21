@@ -158,8 +158,7 @@ fn it_parses_density_lib() -> LefResult<()> {
         END
     END macro_dens
     "#;
-    let lib = parse_str(src)?;
-    //check_yaml(&lib, &resource("lib2.yaml"));
+    let _lib = parse_str(src)?;
     Ok(())
 }
 
