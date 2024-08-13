@@ -187,9 +187,23 @@ pub struct LefViaRuleGenerate {
 #[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 pub struct LefNonDefaultRule {
     pub name: String,
+    pub layers: Vec<LefNonDefaultRuleLayer>,
+    pub vias: Vec<LefNonDefaultRuleVia>,
+    // intentionally not supporting pre5.6 SPACING..END SPACING in the data-structure
     pub attributes: Vec<LefGenericAttribute>,
 }
-
+/// NDR Layer
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefNonDefaultRuleLayer {
+    pub name: String,
+    pub attributes: Vec<LefGenericAttribute>,
+}
+/// NDR Via
+#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+pub struct LefNonDefaultRuleVia {
+    pub name: String,
+    pub attributes: Vec<LefGenericAttribute>,
+}
 /// A Generic LEF Attribute.  This starts with a LefKey/String and contains a list of tokens.
 /// e.g. SPACING FOO BAR 1.0 "baz" ;
 #[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -908,6 +922,7 @@ enumstr!(
         UseVia: "USEVIA",
         UseViaRule: "USEVIARULE",
         MinCuts: "MINCUTS",
+        SameNet: "SAMENET",
     }
 );
 impl LefKey {

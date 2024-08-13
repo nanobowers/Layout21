@@ -171,6 +171,12 @@ impl<'src> LefLexer<'src> {
         if self.accept_char(';') {
             return Ok(Some(self.emit(TokenType::SemiColon)));
         }
+        if self.accept_char('(') {
+            return Ok(Some(self.emit(TokenType::OpenParen)));
+        }
+        if self.accept_char(')') {
+            return Ok(Some(self.emit(TokenType::CloseParen)));
+        }
         if self.accept_char('"') {
             return self.lex_string_literal();
         }
@@ -289,6 +295,8 @@ pub enum TokenType {
     Name,
     Number,
     SemiColon,
+    OpenParen,
+    CloseParen,
     StringLiteral,
     NewLine,
     WhiteSpace,
@@ -302,6 +310,8 @@ pub enum LefParseContext {
     Layer,
     Via,
     ViaRule,
+    NonDefaultRule,
+    Spacing,
     Macro,
     Pin,
     Port,
@@ -630,9 +640,50 @@ impl<'src> LefParser<'src> {
                 }
                 LefKey::NonDefaultRule => {
                     self.advance()?;
-                    self.ctx.push(LefParseContext::ViaRule);
+                    self.ctx.push(LefParseContext::NonDefaultRule);
                     let name = self.parse_ident()?;
-                    ndrs.push(LefNonDefaultRule{ name: name.clone(), attributes: self.parse_generic_attributes(name)? });
+                    let mut ndrvias = Vec::new();
+                    let mut ndrlayers = Vec::new();
+                    let mut attributes = Vec::new();
+                    loop {
+                        match self.peek_key()? {
+                            LefKey::Layer => {
+                                ndrlayers.push(self.parse_ndr_layer()?);
+                            }
+                            LefKey::Via => {
+                                ndrvias.push(self.parse_ndr_via()?);
+                            }
+                            LefKey::Spacing => {
+                                // FIXME: this is only valid for pre lef5.6
+                                self.advance()?; // eat SPACING
+                                self.ctx.push(LefParseContext::Spacing);
+
+                                loop {
+                                    match self.peek_key()? {
+                                        LefKey::End => {
+                                            self.advance()?;
+                                            self.expect_key(LefKey::Spacing)?;
+                                            break;
+                                        }
+                                        _ => {
+                                            // Currently not doing anything with this data
+                                            self.parse_generic_attribute()?;
+                                            //()
+                                        }
+                                    }
+                                }
+                                self.ctx.pop();
+                            }
+                            LefKey::End => {
+                                self.advance()?;
+                                self.expect_ident(&name)?;
+                                break;
+                            }
+                            _ => attributes.push(self.parse_generic_attribute()?)
+                        }
+                    }
+                    let ndr = LefNonDefaultRule{ name: name.clone(), layers: ndrlayers, vias: ndrvias, attributes };
+                    ndrs.push(ndr);
                     self.ctx.pop();
                     lib 
                 }
@@ -646,6 +697,26 @@ impl<'src> LefParser<'src> {
         lib = lib.property_definitions(property_definitions);
         self.ctx.pop();
         Ok(lib.build()?)
+    }
+
+    fn parse_ndr_layer(&mut self) -> LefResult<LefNonDefaultRuleLayer> {
+        self.advance()?; // VIA
+        self.ctx.push(LefParseContext::Layer);
+        let name = self.parse_ident()?;
+        let layername = name.clone();
+        let attributes = self.parse_generic_attributes(name)?;
+        self.ctx.pop();
+        Ok(LefNonDefaultRuleLayer{ name: layername, attributes})
+    }
+    // parse VIA in NONDEFAULTRULE
+    fn parse_ndr_via(&mut self) -> LefResult<LefNonDefaultRuleVia> {
+        self.advance()?; // VIA
+        self.ctx.push(LefParseContext::Via);
+        let name = self.parse_ident()?;
+        let vianame = name.clone();
+        let attributes = self.parse_generic_attributes(name)?;
+        self.ctx.pop();
+        Ok(LefNonDefaultRuleVia{ name: vianame, attributes})
     }
 
     // parse "Default" into a boolean for VIA and VIARULE-GENERATE
