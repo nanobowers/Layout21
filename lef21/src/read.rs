@@ -607,21 +607,12 @@ impl<'src> LefParser<'src> {
                     self.expect(TokenType::SemiColon)?;
                     lib.max_via_stack(Some(LefMaxViaStack{value, range}))
                 }
-                LefKey::Layer => { 
-                    self.advance()?;
-                    self.ctx.push(LefParseContext::Layer);
-                    let name = self.parse_ident()?;
-                    layers.push(LefLayerDefinition{ name: name.clone(), attributes: self.parse_generic_attributes(name)? });
-                    self.ctx.pop();
+                LefKey::Layer => {
+                    layers.push(self.parse_layer_definition()?);
                     lib 
                 }
                 LefKey::Via => {
-                    self.advance()?;
-                    self.ctx.push(LefParseContext::Via);
-                    let name = self.parse_ident()?;
-                    let default = self.parse_maybe_default()?;
-                    vias.push(LefViaDefinition{ name: name.clone(), default, attributes: self.parse_generic_attributes(name)? });
-                    self.ctx.pop();
+                    vias.push(self.parse_via_definition()?);
                     lib 
                 }
                 LefKey::ViaRule => {
@@ -648,10 +639,10 @@ impl<'src> LefParser<'src> {
                     loop {
                         match self.peek_key()? {
                             LefKey::Layer => {
-                                ndrlayers.push(self.parse_ndr_layer()?);
+                                ndrlayers.push(self.parse_layer_definition()?);
                             }
                             LefKey::Via => {
-                                ndrvias.push(self.parse_ndr_via()?);
+                                ndrvias.push(self.parse_via_definition()?);
                             }
                             LefKey::Spacing => {
                                 // FIXME: this is only valid for pre lef5.6
@@ -693,33 +684,41 @@ impl<'src> LefParser<'src> {
         }
         lib = lib.macros(macros);
         lib = lib.sites(sites);
+        lib = lib.layers(layers);
+        lib = lib.vias(vias);
+        lib = lib.via_rules(viarules);
+        lib = lib.via_rule_generators(viarulegenerates);
+        lib = lib.non_default_rules(ndrs);
         lib = lib.extensions(extensions);
         lib = lib.property_definitions(property_definitions);
         self.ctx.pop();
         Ok(lib.build()?)
     }
 
-    fn parse_ndr_layer(&mut self) -> LefResult<LefNonDefaultRuleLayer> {
-        self.advance()?; // VIA
+    /// Parse LAYER definition in toplevel and NONDEFAULTRULE
+    fn parse_layer_definition(&mut self) -> LefResult<LefLayerDefinition> {
+        self.advance()?; // Eat LAYER
         self.ctx.push(LefParseContext::Layer);
         let name = self.parse_ident()?;
         let layername = name.clone();
         let attributes = self.parse_generic_attributes(name)?;
         self.ctx.pop();
-        Ok(LefNonDefaultRuleLayer{ name: layername, attributes})
+        Ok(LefLayerDefinition{ name: layername, attributes})
     }
-    // parse VIA in NONDEFAULTRULE
-    fn parse_ndr_via(&mut self) -> LefResult<LefNonDefaultRuleVia> {
-        self.advance()?; // VIA
+
+    /// Parse VIA definition in toplevel and NONDEFAULTRULE
+    fn parse_via_definition(&mut self) -> LefResult<LefViaDefinition> {
+        self.advance()?; // Eat VIA
         self.ctx.push(LefParseContext::Via);
         let name = self.parse_ident()?;
         let vianame = name.clone();
+        let default: bool = self.parse_maybe_default()?;
         let attributes = self.parse_generic_attributes(name)?;
         self.ctx.pop();
-        Ok(LefNonDefaultRuleVia{ name: vianame, attributes})
+        Ok(LefViaDefinition{ name: vianame, default, attributes})
     }
 
-    // parse "Default" into a boolean for VIA and VIARULE-GENERATE
+    /// Parse "Default" into a boolean for VIA and VIARULE-GENERATE
     fn parse_maybe_default(&mut self) -> LefResult<bool> {
         if self.peek_key()? == LefKey::Default {
             self.advance()?;

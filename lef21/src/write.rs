@@ -131,13 +131,11 @@ impl<'wr> LefWriter<'wr> {
             self.write_line(format_args_f!("{FixedMask} ;"))?;
         }
 
-        // TODO: LAYER
-        // TODO: MAXVIASTACK
-        // TODO: VIARULE GENERATE
-        // TODO: VIA
-        //    if let Some(ref v) = lib.vias { }
-        // TODO: VIARULE
-        // TODO: NONDEFAULTRULE
+        // Write each LAYER definition
+        for mac in lib.layers.iter() {
+            self.write_layer_definition(mac)?;
+        }
+        // MAXVIASTACK
         if let Some(ref v) = lib.max_via_stack {
             let rangestr = match v.range {
                 Some(ref r) => {
@@ -147,7 +145,22 @@ impl<'wr> LefWriter<'wr> {
             };
             self.write_line(format_args_f!("{MaxViaStack} {v.value} {rangestr} ;"))?;
         }
-
+        // Write each VIARULE GENERATE definition
+        for vr in lib.via_rule_generators.iter() {
+            self.write_via_rule_generate(vr)?;
+        }
+        // Write each VIA definition
+        for via in lib.vias.iter() {
+            self.write_via_definition(via)?;
+        }
+        // Write each VIARULE definition
+        for vr in lib.via_rules.iter() {
+            self.write_via_rule(vr)?;
+        }
+        //  Write each NONDEFAULTRULE definition
+        for ndr in lib.non_default_rules.iter() {
+            self.write_non_default_rule(ndr)?;
+        }
         // Write each SITE definition
         for site in lib.sites.iter() {
             self.write_site(site)?;
@@ -156,7 +169,7 @@ impl<'wr> LefWriter<'wr> {
         for mac in lib.macros.iter() {
             self.write_macro(mac)?;
         }
-
+        // Write each LEF Extension (BEGINEXT..ENDEXT)
         for ext in lib.extensions.iter() {
             use LefKey::{BeginExtension, EndExtension};
             self.write_line(format_args_f!("{BeginExtension} {ext.name} {ext.data} {EndExtension}"))?;
@@ -189,9 +202,9 @@ impl<'wr> LefWriter<'wr> {
     /// Write a [LefSite] definition
     fn write_site(&mut self, site: &LefSite) -> LefResult<()> {
         use LefKey::{By, Class, End, Site, Size};
-        self.write_line(format_args_f!("{Site} {site.name} ; "))?;
+        self.write_line(format_args_f!("{Site} {site.name} "))?;
         self.indent += 1;
-        self.write_line(format_args_f!("{Class} {site.class};"))?;
+        self.write_line(format_args_f!("{Class} {site.class} ;"))?;
         if let Some(ref v) = site.symmetry {
             self.write_symmetries(v)?;
         }
@@ -199,7 +212,7 @@ impl<'wr> LefWriter<'wr> {
         // if site.row_pattern.is_some() { }
         self.write_line(format_args_f!("{Size} {site.size.0} {By} {site.size.1} ;"))?;
         self.indent -= 1;
-        self.write_line(format_args_f!("{End} {site.name} ; "))?;
+        self.write_line(format_args_f!("{End} {site.name} "))?;
         Ok(())
     }
 
@@ -237,6 +250,81 @@ impl<'wr> LefWriter<'wr> {
         self.write_line(format_args_f!("{End} {Units} "))?;
         Ok(())
     }
+
+    /// Write [LefGenericAttribute]s
+    fn write_generic_attributes(&mut self, attrs: &Vec<LefGenericAttribute>) -> LefResult<()> {
+        for attr in attrs.iter() {
+            self.write_line(format_args_f!("{} {} ; ", attr.name, attr.values.join(" ")))?;
+        }
+        Ok(())
+    }
+
+    /// Write a [LefLayerDefinition]
+    fn write_layer_definition(&mut self, layerdef: &LefLayerDefinition) -> LefResult<()> {
+        use LefKey::{End, Layer};
+        self.write_line(format_args_f!("{Layer} {} ", layerdef.name))?;
+        self.indent += 1;
+        self.write_generic_attributes(&layerdef.attributes)?;
+        self.indent -= 1;
+        self.write_line(format_args_f!("{End} {} ", layerdef.name))?;
+        Ok(())
+    }
+    /// Write a [LefViaDefinition]
+    fn write_via_definition(&mut self, viadef: &LefViaDefinition) -> LefResult<()> {
+        use LefKey::{Default, End, Via};
+        if viadef.default {
+            self.write_line(format_args_f!("{Via} {} {Default} ", viadef.name))?;
+        } else {
+            self.write_line(format_args_f!("{Via} {} ", viadef.name))?;
+        }
+        self.indent += 1;
+        self.write_generic_attributes(&viadef.attributes)?;
+        self.indent -= 1;
+        self.write_line(format_args_f!("{End} {} ", viadef.name))?;
+        Ok(())
+    }
+    /// Write a [LefViaRule]
+    fn write_via_rule(&mut self, viarule: &LefViaRule) -> LefResult<()> {
+        use LefKey::{End, ViaRule};
+        self.write_line(format_args_f!("{ViaRule} {} ", viarule.name))?;
+        self.indent += 1;
+        self.write_generic_attributes(&viarule.attributes)?;
+        self.indent -= 1;
+        self.write_line(format_args_f!("{End} {} ", viarule.name))?;
+        Ok(())
+    }
+    /// Write a [LefViaRuleGenerate]
+    fn write_via_rule_generate(&mut self, viarule: &LefViaRuleGenerate) -> LefResult<()> {
+        use LefKey::{Default, End, Generate, ViaRule};
+        if viarule.default {
+            self.write_line(format_args_f!("{ViaRule} {} {Generate} {Default} ", viarule.name))?;
+        } else {
+            self.write_line(format_args_f!("{ViaRule} {} {Generate} ", viarule.name))?;
+        }
+        self.indent += 1;
+        self.write_generic_attributes(&viarule.attributes)?;
+        self.indent -= 1;
+        self.write_line(format_args_f!("{End} {} ", viarule.name))?;
+        Ok(())
+    }
+
+    /// Write a [LefNonDefaultRule]
+    fn write_non_default_rule(&mut self, ndr: &LefNonDefaultRule) -> LefResult<()> {
+        use LefKey::{End, NonDefaultRule};
+        self.write_line(format_args_f!("{NonDefaultRule} {} ", ndr.name))?;
+        self.indent += 1;
+        for layer in ndr.layers.iter() {
+            self.write_layer_definition(layer)?;
+        }
+        for via in ndr.vias.iter() {
+            self.write_via_definition(via)?;
+        }
+        self.write_generic_attributes(&ndr.attributes)?;
+        self.indent -= 1;
+        self.write_line(format_args_f!("{End} {} ", ndr.name))?;
+        Ok(())
+    }
+
 
     /// Write a [LefMacro], in recommended order of fields.
     fn write_macro(&mut self, mac: &LefMacro) -> LefResult<()> {

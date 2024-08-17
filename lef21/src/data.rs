@@ -78,7 +78,7 @@ pub struct LefLibrary {
     pub units: Option<LefUnits>,
 
     // Fixed-Mask attribute
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     #[builder(default)]
     pub fixed_mask: bool,
 
@@ -187,21 +187,9 @@ pub struct LefViaRuleGenerate {
 #[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 pub struct LefNonDefaultRule {
     pub name: String,
-    pub layers: Vec<LefNonDefaultRuleLayer>,
-    pub vias: Vec<LefNonDefaultRuleVia>,
+    pub layers: Vec<LefLayerDefinition>,
+    pub vias: Vec<LefViaDefinition>,
     // intentionally not supporting pre5.6 SPACING..END SPACING in the data-structure
-    pub attributes: Vec<LefGenericAttribute>,
-}
-/// NDR Layer
-#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-pub struct LefNonDefaultRuleLayer {
-    pub name: String,
-    pub attributes: Vec<LefGenericAttribute>,
-}
-/// NDR Via
-#[derive(Default, Clone, Builder, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
-pub struct LefNonDefaultRuleVia {
-    pub name: String,
     pub attributes: Vec<LefGenericAttribute>,
 }
 /// A Generic LEF Attribute.  This starts with a LefKey/String and contains a list of tokens.
@@ -287,7 +275,7 @@ pub struct LefMacro {
     pub eeq: Option<String>,
     
     // Fixed-Mask
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     #[builder(default)]
     pub fixed_mask: bool,
 

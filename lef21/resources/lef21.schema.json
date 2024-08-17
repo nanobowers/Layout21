@@ -3,9 +3,6 @@
   "title": "Lef Library",
   "description": "LEF's primary design-content container, including a set of macro/cell definitions and associated metadata.",
   "type": "object",
-  "required": [
-    "fixed_mask"
-  ],
   "properties": {
     "bus_bit_chars": {
       "description": "Bus-Bit Separator Characters",
@@ -56,20 +53,14 @@
       }
     },
     "fixed_mask": {
-      "writeOnly": true,
       "type": "boolean"
     },
     "layers": {
       "description": "Layer Definitions",
-      "writeOnly": true,
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Unsupported"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LefLayerDefinition"
+      }
     },
     "macros": {
       "description": "Macro Definitions",
@@ -88,7 +79,6 @@
     },
     "max_via_stack": {
       "description": "Max Via Stack",
-      "writeOnly": true,
       "anyOf": [
         {
           "$ref": "#/definitions/LefMaxViaStack"
@@ -122,15 +112,10 @@
     },
     "non_default_rules": {
       "description": "Non Default Rules",
-      "writeOnly": true,
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Unsupported"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LefNonDefaultRule"
+      }
     },
     "property_definitions": {
       "description": "Property Definitions",
@@ -178,39 +163,24 @@
     },
     "via_rule_generators": {
       "description": "Via Rules Generators",
-      "writeOnly": true,
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Unsupported"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LefViaRuleGenerate"
+      }
     },
     "via_rules": {
       "description": "Via Rules",
-      "writeOnly": true,
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Unsupported"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LefViaRule"
+      }
     },
     "vias": {
-      "description": "Via Definitions (Unsupported)",
-      "writeOnly": true,
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Unsupported"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "description": "Via Definitions",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/LefViaDefinition"
+      }
     }
   },
   "definitions": {
@@ -522,6 +492,25 @@
         }
       }
     },
+    "LefGenericAttribute": {
+      "description": "A Generic LEF Attribute.  This starts with a LefKey/String and contains a list of tokens. e.g. SPACING FOO BAR 1.0 \"baz\" ;",
+      "type": "object",
+      "required": [
+        "name",
+        "values"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "LefGeometry": {
       "title": "Lef Geometric Object Enumeration",
       "description": "Includes [LefShape]s and Iterators thereof",
@@ -565,6 +554,25 @@
           "additionalProperties": false
         }
       ]
+    },
+    "LefLayerDefinition": {
+      "description": "Layer Definition",
+      "type": "object",
+      "required": [
+        "attributes",
+        "name"
+      ],
+      "properties": {
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefGenericAttribute"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
     },
     "LefLayerGeometries": {
       "title": "Lef Single-Layer Geometry Store",
@@ -654,7 +662,6 @@
       "description": "The primary block-level construct comprising each [LefLibrary]. Defines a hardware-block's physical abstract, including: * Pin definitions (`pins`) with locations, directions, and associated metadata * Required blockage-obstructions (`obs`) * A variety of other block-level metadata",
       "type": "object",
       "required": [
-        "fixed_mask",
         "name"
       ],
       "properties": {
@@ -687,7 +694,6 @@
           ]
         },
         "fixed_mask": {
-          "writeOnly": true,
           "type": "boolean"
         },
         "foreign": {
@@ -943,6 +949,39 @@
         "value": {
           "type": "string",
           "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+        }
+      }
+    },
+    "LefNonDefaultRule": {
+      "description": "NonDefaultRule",
+      "type": "object",
+      "required": [
+        "attributes",
+        "layers",
+        "name",
+        "vias"
+      ],
+      "properties": {
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefGenericAttribute"
+          }
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefLayerDefinition"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "vias": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefViaDefinition"
+          }
         }
       }
     },
@@ -1908,6 +1947,29 @@
         }
       }
     },
+    "LefViaDefinition": {
+      "description": "Via Definition",
+      "type": "object",
+      "required": [
+        "attributes",
+        "default",
+        "name"
+      ],
+      "properties": {
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefGenericAttribute"
+          }
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
     "LefViaRange": {
       "description": "Range used with [LefMaxViaStack]",
       "type": "object",
@@ -1920,6 +1982,48 @@
           "type": "string"
         },
         "top_layer": {
+          "type": "string"
+        }
+      }
+    },
+    "LefViaRule": {
+      "description": "ViaRule",
+      "type": "object",
+      "required": [
+        "attributes",
+        "name"
+      ],
+      "properties": {
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefGenericAttribute"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "LefViaRuleGenerate": {
+      "description": "ViaRule Generation",
+      "type": "object",
+      "required": [
+        "attributes",
+        "default",
+        "name"
+      ],
+      "properties": {
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LefGenericAttribute"
+          }
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "name": {
           "type": "string"
         }
       }
